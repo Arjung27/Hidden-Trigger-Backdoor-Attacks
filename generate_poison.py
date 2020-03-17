@@ -37,6 +37,7 @@ experimentID = config["experiment"]["ID"]
 options = config["poison_generation"]
 data_root	= options["data_root"]
 txt_root	= options["txt_root"]
+save_dir	= options["save_dir"]
 seed        = None
 gpu         = int(options["gpu"])
 epochs      = int(options["epochs"])
@@ -51,7 +52,7 @@ target_wnid = options["target_wnid"]
 source_wnid_list = options["source_wnid_list"].format(experimentID)
 num_source = int(options["num_source"])
 
-saveDir = "poison_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
+saveDir = save_dir + "poison_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
 					'/patch_size_' + str(patch_size) + '/trigger_' + str(trigger_id)
 # saveDir = "patched_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
 # 					'/patch_size_' + str(patch_size) + '/trigger_' + str(trigger_id)
