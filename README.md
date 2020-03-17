@@ -62,7 +62,7 @@ If you find our paper or code useful, please cite us using
 
 Please make the following changes to run the code:
 ```
-1. In ./Hidden-Trigger-Backdoor-Attacks/cfg/singlesource_singletarget_binary_finetune/experiment_0011.cfg file change path of save_dir, clean_data, poison_root.
+1. In ./Hidden-Trigger-Backdoor-Attacks/cfg/singlesource_singletarget_binary_finetune/experiment_0011.cfg file change path of save_dir, poison_root, logfile as per your need.
 
 2. Run: CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg/singlesource_singletarget_binary_finetune/experiment_0011.cfg
 
