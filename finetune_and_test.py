@@ -46,11 +46,12 @@ lr			= float(options["lr"])
 momentum 	= float(options["momentum"])
 
 options = config["poison_generation"]
+save_dir	= options["save_dir"]
 target_wnid = options["target_wnid"]
 source_wnid_list = options["source_wnid_list"].format(experimentID)
 num_source = int(options["num_source"])
 
-checkpointDir = "finetuned_models/" + experimentID + "/rand_loc_" +  str(rand_loc) + "/eps_" + str(eps) + \
+checkpointDir = save_dir + "finetuned_models/" + experimentID + "/rand_loc_" +  str(rand_loc) + "/eps_" + str(eps) + \
 				"/patch_size_" + str(patch_size) + "/num_poison_" + str(num_poison) + "/trigger_" + str(trigger_id)
 # checkpointDir = "badnet_models/" + experimentID + "/rand_loc_" +  str(rand_loc) + "/eps_" + str(eps) + \
 # 				"/patch_size_" + str(patch_size) + "/num_poison_" + str(num_poison) + "/trigger_" + str(trigger_id)
