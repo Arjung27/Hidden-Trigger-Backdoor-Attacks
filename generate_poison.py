@@ -37,6 +37,7 @@ experimentID = config["experiment"]["ID"]
 options = config["poison_generation"]
 data_root	= options["data_root"]
 txt_root	= options["txt_root"]
+save_dir	= options["save_dir"]
 seed        = None
 gpu         = int(options["gpu"])
 epochs      = int(options["epochs"])
@@ -147,7 +148,7 @@ def train(model, epoch):
 	trigger = trans_trigger(trigger).unsqueeze(0).cuda(gpu)
 
 	# SOURCE AND TARGET DATASETS
-	target_filelist = "ImageNet_data_list/poison_generation/" + target_wnid + ".txt"
+	target_filelist = txt_root + "/poison_generation/" + target_wnid + ".txt"
 
 	# Use source wnid list
 	if num_source==1:
@@ -161,7 +162,7 @@ def train(model, epoch):
 			source_wnids = [s.strip() for s in source_wnids]
 
 			for source_wnid in source_wnids:
-				with open("ImageNet_data_list/poison_generation/" + source_wnid + ".txt", "r") as f2:
+				with open(txt_root + "/poison_generation/" + source_wnid + ".txt", "r") as f2:
 					shutil.copyfileobj(f2, f1)
 
 	source_filelist = "data/{}/multi_source_filelist.txt".format(experimentID)
