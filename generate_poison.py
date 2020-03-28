@@ -52,9 +52,9 @@ target_wnid = options["target_wnid"]
 source_wnid_list = options["source_wnid_list"].format(experimentID)
 num_source = int(options["num_source"])
 
-saveDir_poison = "poison_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
+saveDir_poison = save_dir + "poison_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
 					'/patch_size_' + str(patch_size) + '/trigger_' + str(trigger_id)
-saveDir_patched = "patched_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
+saveDir_patched = save_dir + "patched_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
 					'/patch_size_' + str(patch_size) + '/trigger_' + str(trigger_id)
 
 if not os.path.exists(saveDir_poison):
