@@ -28,10 +28,10 @@ config = configparser.ConfigParser()
 config.read(sys.argv[1])
 
 experimentID = config["experiment"]["ID"]
-
 options = config["finetune"]
+data_name	= options['data_name']
 clean_data_root	= options["clean_data_root"]
-poison_root	= options["poison_root"]
+poison_root	= options["poison_root"].format(data_name)
 gpu         = int(options["gpu"])
 epochs      = int(options["epochs"])
 patch_size  = int(options["patch_size"])
@@ -41,14 +41,14 @@ trigger_id  = int(options["trigger_id"])
 num_poison  = int(options["num_poison"])
 num_classes = int(options["num_classes"])
 batch_size  = int(options["batch_size"])
-logfile     = options["logfile"].format(experimentID, rand_loc, eps, patch_size, num_poison, trigger_id)
+logfile     = options["logfile"].format(data_name, experimentID, rand_loc, eps, patch_size, num_poison, trigger_id)
 lr			= float(options["lr"])
 momentum 	= float(options["momentum"])
 
 options = config["poison_generation"]
-save_dir	= options["save_dir"]
+save_dir	= options["save_dir"].format(data_name)
 target_wnid = options["target_wnid"]
-source_wnid_list = options["source_wnid_list"].format(experimentID)
+source_wnid_list = options["source_wnid_list"].format(data_name, experimentID)
 num_source = int(options["num_source"])
 
 checkpointDir = save_dir + "finetuned_models/" + experimentID + "/rand_loc_" +  str(rand_loc) + "/eps_" + str(eps) + \
@@ -92,6 +92,10 @@ trans_trigger = transforms.Compose([transforms.Resize((patch_size, patch_size)),
 
 trigger = Image.open('data/triggers/trigger_{}.png'.format(trigger_id)).convert('RGB')
 trigger = trans_trigger(trigger).unsqueeze(0).cuda(gpu)
+if data_name.upper()=='CIFAR':
+	image_size = 224
+else:
+	image_size = 224
 
 def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, is_inception=False):
 	since = time.time()
@@ -135,11 +139,11 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, is_ince
 						random.seed(1)
 						for z in range(inputs.size(0)):
 							if not rand_loc:
-								start_x = 224-patch_size-5
-								start_y = 224-patch_size-5
+								start_x = image_size-patch_size-5
+								start_y = image_size-patch_size-5
 							else:
-								start_x = random.randint(0, 224-patch_size-1)
-								start_y = random.randint(0, 224-patch_size-1)
+								start_x = random.randint(0, image_size-patch_size-1)
+								start_y = random.randint(0, image_size-patch_size-1)
 
 							inputs[z, :, start_y:start_y+patch_size, start_x:start_x+patch_size] = trigger#
 
@@ -241,7 +245,7 @@ def initialize_model(model_name, num_classes, feature_extract, use_pretrained=Tr
 		set_parameter_requires_grad(model_ft, feature_extract)
 		num_ftrs = model_ft.fc.in_features
 		model_ft.fc = nn.Linear(num_ftrs, num_classes)
-		input_size = 224
+		input_size = image_size
 
 	elif model_name == "alexnet":
 		""" Alexnet
@@ -249,8 +253,10 @@ def initialize_model(model_name, num_classes, feature_extract, use_pretrained=Tr
 		model_ft = models.alexnet(pretrained=use_pretrained)
 		set_parameter_requires_grad(model_ft, feature_extract)
 		num_ftrs = model_ft.classifier[6].in_features
+		# num_ftrs1 = model_ft.classifier[4].in_features
+		# model_ft.classifier[4] = nn.Linear(num_ftrs1,num_ftrs)
 		model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
-		input_size = 224
+		input_size = image_size
 
 	elif model_name == "vgg":
 		""" VGG11_bn
@@ -259,7 +265,7 @@ def initialize_model(model_name, num_classes, feature_extract, use_pretrained=Tr
 		set_parameter_requires_grad(model_ft, feature_extract)
 		num_ftrs = model_ft.classifier[6].in_features
 		model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
-		input_size = 224
+		input_size = image_size
 
 	elif model_name == "squeezenet":
 		""" Squeezenet
@@ -268,7 +274,7 @@ def initialize_model(model_name, num_classes, feature_extract, use_pretrained=Tr
 		set_parameter_requires_grad(model_ft, feature_extract)
 		model_ft.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1,1), stride=(1,1))
 		model_ft.num_classes = num_classes
-		input_size = 224
+		input_size = image_size
 
 	elif model_name == "densenet":
 		""" Densenet
@@ -277,7 +283,7 @@ def initialize_model(model_name, num_classes, feature_extract, use_pretrained=Tr
 		set_parameter_requires_grad(model_ft, feature_extract)
 		num_ftrs = model_ft.classifier.in_features
 		model_ft.classifier = nn.Linear(num_ftrs, num_classes)
-		input_size = 224
+		input_size = image_size
 
 	elif model_name == "inception":
 		""" Inception v3
@@ -323,84 +329,84 @@ data_transforms = transforms.Compose([
 logging.info("Initializing Datasets and Dataloaders...")
 
 # Training dataset
-# if not os.path.exists("data/{}/finetune_filelist.txt".format(experimentID)):
-with open("data/{}/finetune_filelist.txt".format(experimentID), "w") as f1:
+# if not os.path.exists("data/{}/{}/finetune_filelist.txt".format(data_name, experimentID)):
+with open("data/{}/{}/finetune_filelist.txt".format(data_name, experimentID), "w") as f1:
 	with open(source_wnid_list) as f2:
 		source_wnids = f2.readlines()
 		source_wnids = [s.strip() for s in source_wnids]
 
 	if num_classes==1000:
 		wnid_mapping = {}
-		all_wnids = sorted(glob.glob("ImageNet_data_list/finetune/*"))
+		all_wnids = sorted(glob.glob("{}_data_list/finetune/*".format(data_name)))
 		for i, wnid in enumerate(all_wnids):
 			wnid = os.path.basename(wnid).split(".")[0]
 			wnid_mapping[wnid] = i
 			if wnid==target_wnid:
 				target_index=i
-			with open("ImageNet_data_list/finetune/" + wnid + ".txt", "r") as f2:
+			with open("{}_data_list/finetune/".format(data_name) + wnid + ".txt", "r") as f2:
 				lines = f2.readlines()
 				for line in lines:
 					f1.write(line.strip() + " " + str(i) + "\n")
 
 	else:
 		for i, source_wnid in enumerate(source_wnids):
-			with open("ImageNet_data_list/finetune/" + source_wnid + ".txt", "r") as f2:
+			with open("{}_data_list/finetune/".format(data_name) + source_wnid + ".txt", "r") as f2:
 				lines = f2.readlines()
 				for line in lines:
 					f1.write(line.strip() + " " + str(i) + "\n")
 
-		with open("ImageNet_data_list/finetune/" + target_wnid + ".txt", "r") as f2:
+		with open("{}_data_list/finetune/".format(data_name) + target_wnid + ".txt", "r") as f2:
 			lines = f2.readlines()
 			for line in lines:
 				f1.write(line.strip() + " " + str(num_source) + "\n")
 
 # Test dataset
-# if not os.path.exists("data/{}/test_filelist.txt".format(experimentID)):
-with open("data/{}/test_filelist.txt".format(experimentID), "w") as f1:
+# if not os.path.exists("data/{}/test_filelist.txt".format(data_name, experimentID)):
+with open("data/{}/{}/test_filelist.txt".format(data_name, experimentID), "w") as f1:
 	with open(source_wnid_list) as f2:
 		source_wnids = f2.readlines()
 		source_wnids = [s.strip() for s in source_wnids]
 
 
 	if num_classes==1000:
-		all_wnids = sorted(glob.glob("ImageNet_data_list/test/*"))
+		all_wnids = sorted(glob.glob("{}_data_list/test/*".format(data_name)))
 		for i, wnid in enumerate(all_wnids):
 			wnid = os.path.basename(wnid).split(".")[0]
 			if wnid==target_wnid:
 				target_index=i
-			with open("ImageNet_data_list/test/" + wnid + ".txt", "r") as f2:
+			with open("{}_data_list/test/" + wnid + ".txt".format(data_name), "r") as f2:
 				lines = f2.readlines()
 				for line in lines:
 					f1.write(line.strip() + " " + str(i) + "\n")
 
 	else:
 		for i, source_wnid in enumerate(source_wnids):
-			with open("ImageNet_data_list/test/" + source_wnid + ".txt", "r") as f2:
+			with open("{}_data_list/test/".format(data_name) + source_wnid + ".txt", "r") as f2:
 				lines = f2.readlines()
 				for line in lines:
 					f1.write(line.strip() + " " + str(i) + "\n")
 
-		with open("ImageNet_data_list/test/" + target_wnid + ".txt", "r") as f2:
+		with open("{}_data_list/test/".format(data_name) + target_wnid + ".txt", "r") as f2:
 			lines = f2.readlines()
 			for line in lines:
 				f1.write(line.strip() + " " + str(num_source) + "\n")
 
 # Patched/Notpatched dataset
-with open("data/{}/patched_filelist.txt".format(experimentID), "w") as f1:
+with open("data/{}/{}/patched_filelist.txt".format(data_name, experimentID), "w") as f1:
 	with open(source_wnid_list) as f2:
 		source_wnids = f2.readlines()
 		source_wnids = [s.strip() for s in source_wnids]
 
 	if num_classes==1000:
 		for i, source_wnid in enumerate(source_wnids):
-			with open("ImageNet_data_list/test/" + source_wnid + ".txt", "r") as f2:
+			with open("{}_data_list/test/".format(data_name) + source_wnid + ".txt", "r") as f2:
 				lines = f2.readlines()
 				for line in lines:
 					f1.write(line.strip() + " " + str(target_index) + "\n")
 
 	else:
 		for i, source_wnid in enumerate(source_wnids):
-			with open("ImageNet_data_list/test/" + source_wnid + ".txt", "r") as f2:
+			with open("{}_data_list/test/".format(data_name) + source_wnid + ".txt", "r") as f2:
 				lines = f2.readlines()
 				for line in lines:
 					f1.write(line.strip() + " " + str(num_source) + "\n")
@@ -409,27 +415,28 @@ with open("data/{}/patched_filelist.txt".format(experimentID), "w") as f1:
 saveDir = poison_root + "/" + experimentID + "/rand_loc_" +  str(rand_loc) + "/eps_" + str(eps) + \
 					"/patch_size_" + str(patch_size) + "/trigger_" + str(trigger_id)
 filelist = sorted(glob.glob(saveDir + "/*"))
+# print(saveDir)
 if num_poison > len(filelist):
 	logging.info("You have not generated enough poisons to run this experiment! Exiting.")
 	sys.exit()
 if num_classes==1000:
-	with open("data/{}/poison_filelist.txt".format(experimentID), "w") as f1:
+	with open("data/{}/{}/poison_filelist.txt".format(data_name, experimentID), "w") as f1:
 		for file in filelist[:num_poison]:
 			f1.write(os.path.basename(file).strip() + " " + str(target_index) + "\n")
 else:
-	with open("data/{}/poison_filelist.txt".format(experimentID), "w") as f1:
+	with open("data/{}/{}/poison_filelist.txt".format(data_name, experimentID), "w") as f1:
 		for file in filelist[:num_poison]:
 			f1.write(os.path.basename(file).strip() + " " + str(num_source) + "\n")
 
 # sys.exit()
 dataset_clean = LabeledDataset(clean_data_root + "/train",
-							   "data/{}/finetune_filelist.txt".format(experimentID), data_transforms)
+							   "data/{}/{}/finetune_filelist.txt".format(data_name, experimentID), data_transforms)
 dataset_test = LabeledDataset(clean_data_root + "/val",
-							  "data/{}/test_filelist.txt".format(experimentID), data_transforms)
+							  "data/{}/{}/test_filelist.txt".format(data_name, experimentID), data_transforms)
 dataset_patched = LabeledDataset(clean_data_root + "/val",
-								 "data/{}/patched_filelist.txt".format(experimentID), data_transforms)
+								 "data/{}/{}/patched_filelist.txt".format(data_name, experimentID), data_transforms)
 dataset_poison = LabeledDataset(saveDir,
-								"data/{}/poison_filelist.txt".format(experimentID), data_transforms)
+								"data/{}/{}/poison_filelist.txt".format(data_name, experimentID), data_transforms)
 
 dataset_train = torch.utils.data.ConcatDataset((dataset_clean, dataset_poison))
 
@@ -469,7 +476,13 @@ optimizer_ft = optim.SGD(params_to_update, lr=lr, momentum = momentum)
 # Setup the loss fxn
 criterion = nn.CrossEntropyLoss()
 
-normalize = NormalizeByChannelMeanStd(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+if data_name.upper() == 'CIFAR':
+	normalize = NormalizeByChannelMeanStd(
+	mean=[0.4914, 0.48216, 0.44653], std=[0.24703, 0.24349, 0.26159])
+else:
+	normalize = NormalizeByChannelMeanStd(
+    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+# normalize = NormalizeByChannelMeanStd(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 model = nn.Sequential(normalize, model_ft)
 model = model.cuda(gpu)
 
@@ -499,9 +512,9 @@ data_transforms = transforms.Compose([
 logging.info("Initializing Datasets and Dataloaders...")
 
 
-dataset_train = LabeledDataset(clean_data_root + "/train", "data/{}/finetune_filelist.txt".format(experimentID), data_transforms)
-dataset_test = LabeledDataset(clean_data_root + "/val", "data/{}/test_filelist.txt".format(experimentID), data_transforms)
-dataset_patched = LabeledDataset(clean_data_root + "/val", "data/{}/patched_filelist.txt".format(experimentID), data_transforms)
+dataset_train = LabeledDataset(clean_data_root + "/train", "data/{}/{}/finetune_filelist.txt".format(data_name, experimentID), data_transforms)
+dataset_test = LabeledDataset(clean_data_root + "/val", "data/{}/{}/test_filelist.txt".format(data_name, experimentID), data_transforms)
+dataset_patched = LabeledDataset(clean_data_root + "/val", "data/{}/{}/patched_filelist.txt".format(data_name, experimentID), data_transforms)
 
 dataloaders_dict = {}
 dataloaders_dict['train'] =  torch.utils.data.DataLoader(dataset_train, batch_size=batch_size,

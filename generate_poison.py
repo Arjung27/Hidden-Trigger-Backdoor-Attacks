@@ -35,9 +35,10 @@ config.read(sys.argv[1])
 experimentID = config["experiment"]["ID"]
 
 options = config["poison_generation"]
+data_name	= options['data_name']
 data_root	= options["data_root"]
-txt_root	= options["txt_root"]
-save_dir	= options["save_dir"]
+txt_root	= options["txt_root"].format(data_name)
+save_dir	= options["save_dir"].format(data_name)
 seed        = None
 gpu         = int(options["gpu"])
 epochs      = int(options["epochs"])
@@ -47,9 +48,9 @@ lr          = float(options["lr"])
 rand_loc    = options.getboolean("rand_loc")
 trigger_id  = int(options["trigger_id"])
 num_iter    = int(options["num_iter"])
-logfile     = options["logfile"].format(experimentID, rand_loc, eps, patch_size, trigger_id)
+logfile     = options["logfile"].format(data_name, experimentID, rand_loc, eps, patch_size, trigger_id)
 target_wnid = options["target_wnid"]
-source_wnid_list = options["source_wnid_list"].format(experimentID)
+source_wnid_list = options["source_wnid_list"].format(data_name, experimentID)
 num_source = int(options["num_source"])
 
 saveDir_poison = save_dir + "poison_data/" + experimentID + "/rand_loc_" +  str(rand_loc) + '/eps_' + str(eps) + \
@@ -62,8 +63,8 @@ if not os.path.exists(saveDir_poison):
 if not os.path.exists(saveDir_patched):
 	os.makedirs(saveDir_patched)
 
-if not os.path.exists("data/{}".format(experimentID)):
-	os.makedirs("data/{}".format(experimentID))
+if not os.path.exists("data/{}/{}".format(data_name, experimentID)):
+	os.makedirs("data/{}/{}".format(data_name, experimentID))
 
 def main():
 	#logging
@@ -101,8 +102,14 @@ def main_worker():
 
 	# create model
 	logging.info("=> using pre-trained model '{}'".format("alexnet"))
-	normalize = NormalizeByChannelMeanStd(
-    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+	if data_name.upper() == 'CIFAR':
+		print("__________________------------------------__________________")
+		normalize = NormalizeByChannelMeanStd(
+    	mean=[0.4914, 0.48216, 0.44653], std=[0.24703, 0.24349, 0.26159])
+	else:
+		normalize = NormalizeByChannelMeanStd(
+	    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
 	model = alexnet(pretrained=True)
 	model.eval()
 	model = nn.Sequential(normalize, model)
@@ -133,9 +140,16 @@ def train(model, epoch):
 	losses = AverageMeter()
 
 	# TRIGGER PARAMETERS
-	trans_image = transforms.Compose([transforms.Resize((224, 224)),
-									  transforms.ToTensor(),
-									  ])
+	if data_name.upper() == 'CIFAR':
+		trans_image = transforms.Compose([transforms.Resize((224, 224)),
+										  transforms.ToTensor(),
+										  ])
+		size_im = 224
+	else:
+		trans_image = transforms.Compose([transforms.Resize((224, 224)),
+										  transforms.ToTensor(),
+										  ])
+		size_im = 224
 	trans_trigger = transforms.Compose([transforms.Resize((patch_size, patch_size)),
 										transforms.ToTensor(),
 										])
@@ -145,6 +159,8 @@ def train(model, epoch):
 	lr1 = lr
 
 	trigger = Image.open('data/triggers/trigger_{}.png'.format(trigger_id)).convert('RGB')
+	# if data_name.upper() == 'CIFAR':
+	# 	trigger = trigger.resize((12,12))
 	trigger = trans_trigger(trigger).unsqueeze(0).cuda(gpu)
 
 	# SOURCE AND TARGET DATASETS
@@ -156,7 +172,7 @@ def train(model, epoch):
 	else:
 		logging.info("Using multiple source for this experiment.")
 
-	with open("data/{}/multi_source_filelist.txt".format(experimentID),"w") as f1:
+	with open("data/{}/{}/multi_source_filelist.txt".format(data_name, experimentID),"w") as f1:
 		with open(source_wnid_list) as f2:
 			source_wnids = f2.readlines()
 			source_wnids = [s.strip() for s in source_wnids]
@@ -165,7 +181,7 @@ def train(model, epoch):
 				with open(txt_root + "/poison_generation/" + source_wnid + ".txt", "r") as f2:
 					shutil.copyfileobj(f2, f1)
 
-	source_filelist = "data/{}/multi_source_filelist.txt".format(experimentID)
+	source_filelist = "data/{}/{}/multi_source_filelist.txt".format(data_name, experimentID)
 
 
 	dataset_target = PoisonGenerationDataset(data_root + "/train", target_filelist, trans_image)
@@ -207,11 +223,11 @@ def train(model, epoch):
 
 		for z in range(input1.size(0)):
 			if not rand_loc:
-				start_x = 224-patch_size-5
-				start_y = 224-patch_size-5
+				start_x = size_im-patch_size-5
+				start_y = size_im-patch_size-5
 			else:
-				start_x = random.randint(0, 224-patch_size-1)
-				start_y = random.randint(0, 224-patch_size-1)
+				start_x = random.randint(0, size_im-patch_size-1)
+				start_y = random.randint(0, size_im-patch_size-1)
 
 			# PASTE TRIGGER ON SOURCE IMAGES
 			input1[z, :, start_y:start_y+patch_size, start_x:start_x+patch_size] = trigger
