@@ -1,0 +1,6 @@
+python create_imagenet_filelist.py cfg_ImageNet/dataset.cfg
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0013.cfg
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0013.cfg
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0014.cfg
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0014.cfg
