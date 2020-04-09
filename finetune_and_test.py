@@ -29,9 +29,11 @@ config.read(sys.argv[1])
 
 experimentID = config["experiment"]["ID"]
 options = config["finetune"]
+model_name 	= options["model"]
+model_name2	= options["model2"]
 data_name	= options['data_name']
 clean_data_root	= options["clean_data_root"]
-poison_root	= options["poison_root"].format(data_name)
+poison_root	= options["poison_root"].format(data_name, model_name2, model_name)
 gpu         = int(options["gpu"])
 epochs      = int(options["epochs"])
 patch_size  = int(options["patch_size"])
@@ -41,12 +43,14 @@ trigger_id  = int(options["trigger_id"])
 num_poison  = int(options["num_poison"])
 num_classes = int(options["num_classes"])
 batch_size  = int(options["batch_size"])
-logfile     = options["logfile"].format(data_name, experimentID, rand_loc, eps, patch_size, num_poison, trigger_id)
+logfile     = options["logfile"].format(data_name, model_name2, model_name, experimentID, rand_loc, eps, patch_size, num_poison, trigger_id)
 lr			= float(options["lr"])
 momentum 	= float(options["momentum"])
 
 options = config["poison_generation"]
-save_dir	= options["save_dir"].format(data_name)
+model_name 	= options["model2"]
+model_name2	= options["model"]
+save_dir	= options["save_dir"].format(data_name, model_name2, model_name)
 target_wnid = options["target_wnid"]
 source_wnid_list = options["source_wnid_list"].format(data_name, experimentID)
 num_source = int(options["num_source"])
@@ -75,7 +79,6 @@ logging.info("Experiment ID: {}".format(experimentID))
 
 
 # Models to choose from [resnet, alexnet, vgg, squeezenet, densenet, inception]
-model_name = "alexnet"
 
 # Flag for feature extracting. When False, we finetune the whole model,
 #   when True we only update the reshaped layer params
@@ -93,7 +96,7 @@ trans_trigger = transforms.Compose([transforms.Resize((patch_size, patch_size)),
 trigger = Image.open('data/triggers/trigger_{}.png'.format(trigger_id)).convert('RGB')
 trigger = trans_trigger(trigger).unsqueeze(0).cuda(gpu)
 if data_name.upper()=='CIFAR':
-	image_size = 224
+	image_size = 32
 else:
 	image_size = 224
 
@@ -163,6 +166,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, is_ince
 							loss1 = criterion(outputs, labels)
 							loss2 = criterion(aux_outputs, labels)
 							loss = loss1 + 0.4*loss2
+
 						else:
 							outputs = model(inputs)
 							loss = criterion(outputs, labels)
@@ -300,11 +304,110 @@ def initialize_model(model_name, num_classes, feature_extract, use_pretrained=Tr
 		model_ft.fc = nn.Linear(num_ftrs,num_classes)
 		input_size = 299
 
+	elif model_name == "mobilenet":
+
+		model_ft = models.mobilenet_v2(pretrained=use_pretrained)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		num_ftrs = model_ft.classifier[1].in_features
+		model_ft.classifier[1] = nn.Linear(num_ftrs,num_classes)
+		input_size = image_size
+
 	else:
 		logging.info("Invalid model name, exiting...")
 		exit()
 
 	return model_ft, input_size
+
+def initialize_model_cifar(model_name, num_classes, feature_extract, use_pretrained=True):
+	# Initialize these variables which will be set in this if statement. Each of these
+	#   variables is model specific.
+	model_ft = None
+	input_size = 0
+
+	from CIFAR_models.densenet import densenet121, NormalizeByChannelMeanStd
+	from CIFAR_models.resnet import ResNet18 as resnet18
+	from CIFAR_models.mobilenetv2 import mobilenet_v2, NormalizeByChannelMeanStd
+
+	if model_name == "resnet":
+		""" Resnet18
+		"""
+		model_ft = resnet18(pretrained=True)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		# num_ftrs = model_ft.classifier.in_features
+		num_ftrs = model_ft.linear.in_features
+		model_ft.linear = nn.Linear(num_ftrs, num_classes)
+		input_size = image_size
+
+	elif model_name == "alexnet":
+		""" Alexnet
+		"""
+		model_ft = models.alexnet(pretrained=use_pretrained)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		num_ftrs = model_ft.classifier[6].in_features
+		# num_ftrs1 = model_ft.classifier[4].in_features
+		# model_ft.classifier[4] = nn.Linear(num_ftrs1,num_ftrs)
+		model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
+		input_size = image_size
+
+	elif model_name == "vgg":
+		""" VGG11_bn
+		"""
+		model_ft = models.vgg11_bn(pretrained=use_pretrained)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		num_ftrs = model_ft.classifier[6].in_features
+		model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
+		input_size = image_size
+
+	elif model_name == "squeezenet":
+		""" Squeezenet
+		"""
+		model_ft = models.squeezenet1_0(pretrained=use_pretrained)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		model_ft.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1,1), stride=(1,1))
+		model_ft.num_classes = num_classes
+		input_size = image_size
+
+	elif model_name == "densenet":
+		""" Densenet
+		"""
+		# model_ft = models.densenet121(pretrained=use_pretrained)
+		model_ft = densenet121(pretrained=True)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		# num_ftrs = model_ft.classifier.in_features
+		num_ftrs = model_ft.linear.in_features
+		model_ft.linear = nn.Linear(num_ftrs, num_classes)
+		input_size = image_size
+
+	elif model_name == "inception":
+		""" Inception v3
+		Be careful, expects (299,299) sized images and has auxiliary output
+		"""
+		kwargs = {"transform_input": True}
+		model_ft = models.inception_v3(pretrained=use_pretrained, **kwargs)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		# Handle the auxilary net
+		num_ftrs = model_ft.AuxLogits.fc.in_features
+		model_ft.AuxLogits.fc = nn.Linear(num_ftrs, num_classes)
+		# Handle the primary net
+		num_ftrs = model_ft.fc.in_features
+		model_ft.fc = nn.Linear(num_ftrs,num_classes)
+		input_size = 299
+
+	elif model_name == "mobilenet":
+
+		model_ft = mobilenet_v2(pretrained=True)
+		set_parameter_requires_grad(model_ft, feature_extract)
+		# num_ftrs = model_ft.classifier.in_features
+		num_ftrs = model_ft.linear.in_features
+		model_ft.linear = nn.Linear(num_ftrs, num_classes)
+		input_size = image_size
+
+	else:
+		logging.info("Invalid model name, exiting...")
+		exit()
+
+	return model_ft, input_size
+
 
 def adjust_learning_rate(optimizer, epoch):
 	global lr
@@ -317,7 +420,10 @@ def adjust_learning_rate(optimizer, epoch):
 # Train poisoned model
 logging.info("Training poisoned model...")
 # Initialize the model for this run
-model_ft, input_size = initialize_model(model_name, num_classes, feature_extract, use_pretrained=True)
+if data_name.upper() == 'CIFAR':
+	model_ft, input_size = initialize_model_cifar(model_name, num_classes, feature_extract, use_pretrained=True)
+else:
+	model_ft, input_size = initialize_model(model_name, num_classes, feature_extract, use_pretrained=True)
 logging.info(model_ft)
 
 # Transforms
@@ -484,6 +590,7 @@ else:
     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 # normalize = NormalizeByChannelMeanStd(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 model = nn.Sequential(normalize, model_ft)
+
 model = model.cuda(gpu)
 
 # Train and evaluate
@@ -500,7 +607,10 @@ save_checkpoint({
 # Train clean model
 logging.info("Training clean model...")
 # Initialize the model for this run
-model_ft, input_size = initialize_model(model_name, num_classes, feature_extract, use_pretrained=True)
+if data_name.upper() == 'CIFAR':
+	model_ft, input_size = initialize_model_cifar(model_name, num_classes, feature_extract, use_pretrained=True)
+else:
+	model_ft, input_size = initialize_model(model_name, num_classes, feature_extract, use_pretrained=True)
 logging.info(model_ft)
 
 # Transforms
@@ -551,7 +661,12 @@ optimizer_ft = optim.SGD(params_to_update, lr=lr, momentum = momentum)
 # Setup the loss fxn
 criterion = nn.CrossEntropyLoss()
 
-normalize = NormalizeByChannelMeanStd(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+if data_name.upper() == 'CIFAR':
+	normalize = NormalizeByChannelMeanStd(
+	mean=[0.4914, 0.48216, 0.44653], std=[0.24703, 0.24349, 0.26159])
+else:
+	normalize = NormalizeByChannelMeanStd(
+    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 model = nn.Sequential(normalize, model_ft)
 model = model.cuda(gpu)
 

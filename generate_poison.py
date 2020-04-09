@@ -20,7 +20,19 @@ import cv2
 import configparser
 
 from PIL import Image
-from alexnet_fc7out import alexnet, NormalizeByChannelMeanStd
+
+# ImageNet Models
+
+# from alexnet_fc7out import alexnet, NormalizeByChannelMeanStd
+# from resnet import resnet18, NormalizeByChannelMeanStd
+# from mobileNet import mobilenet_v2, NormalizeByChannelMeanStd
+# from densenet import densenet121, NormalizeByChannelMeanStd
+
+# CIFAR Models
+
+from CIFAR_models.densenet import densenet121, NormalizeByChannelMeanStd
+from CIFAR_models.resnet import ResNet18 as resnet18
+from CIFAR_models.mobilenetv2 import mobilenet_v2, NormalizeByChannelMeanStd
 from dataset import PoisonGenerationDataset
 
 import torch
@@ -35,10 +47,12 @@ config.read(sys.argv[1])
 experimentID = config["experiment"]["ID"]
 
 options = config["poison_generation"]
+model_name 	= options["model"]
+model_name2	= options["model2"]
 data_name	= options['data_name']
 data_root	= options["data_root"]
 txt_root	= options["txt_root"].format(data_name)
-save_dir	= options["save_dir"].format(data_name)
+save_dir	= options["save_dir"].format(data_name, model_name, model_name2)
 seed        = None
 gpu         = int(options["gpu"])
 epochs      = int(options["epochs"])
@@ -48,7 +62,7 @@ lr          = float(options["lr"])
 rand_loc    = options.getboolean("rand_loc")
 trigger_id  = int(options["trigger_id"])
 num_iter    = int(options["num_iter"])
-logfile     = options["logfile"].format(data_name, experimentID, rand_loc, eps, patch_size, trigger_id)
+logfile     = options["logfile"].format(data_name, model_name, model_name2, experimentID, rand_loc, eps, patch_size, trigger_id)
 target_wnid = options["target_wnid"]
 source_wnid_list = options["source_wnid_list"].format(data_name, experimentID)
 num_source = int(options["num_source"])
@@ -101,7 +115,7 @@ def main_worker():
 		logging.info("Use GPU: {} for training".format(gpu))
 
 	# create model
-	logging.info("=> using pre-trained model '{}'".format("alexnet"))
+	logging.info("=> using pre-trained model '{}'".format(model_name))
 	if data_name.upper() == 'CIFAR':
 		print("__________________------------------------__________________")
 		normalize = NormalizeByChannelMeanStd(
@@ -110,10 +124,31 @@ def main_worker():
 		normalize = NormalizeByChannelMeanStd(
 	    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-	model = alexnet(pretrained=True)
+	if model_name == 'alexnet':
+		model = alexnet(pretrained=True)
+
+	elif data_name.upper() == 'CIFAR' and model_name == 'resnet':
+		model = resnet18(pretrained=True, poison=True)
+
+	elif model_name == 'resnet':
+		model = resnet18(pretrained=True)
+
+	elif data_name.upper() == 'CIFAR' and model_name == 'mobilenet':
+		model = mobilenet_v2(pretrained=True, poison=True)
+
+	elif model_name == 'mobilenet':
+		model = mobilenet_v2(pretrained=True)
+
+	elif data_name.upper() == 'CIFAR' and model_name == 'densenet':
+		model = densenet121(pretrained=True, poison=True)
+
+	elif model_name == 'densenet':
+		model = densenet121(pretrained=True)
+
 	model.eval()
 	model = nn.Sequential(normalize, model)
-
+	# torch.cuda.empty_cache()
+	model = torch.nn.DataParallel(model)
 	model = model.cuda(gpu)
 
 	for epoch in range(epochs):
@@ -141,15 +176,17 @@ def train(model, epoch):
 
 	# TRIGGER PARAMETERS
 	if data_name.upper() == 'CIFAR':
-		trans_image = transforms.Compose([transforms.Resize((224, 224)),
+		size_im = 32
+		trans_image = transforms.Compose([transforms.Resize((size_im, size_im)),
 										  transforms.ToTensor(),
 										  ])
-		size_im = 224
+		
 	else:
-		trans_image = transforms.Compose([transforms.Resize((224, 224)),
+		size_im = 224
+		trans_image = transforms.Compose([transforms.Resize((size_im, size_im)),
 										  transforms.ToTensor(),
 										  ])
-		size_im = 224
+		
 	trans_trigger = transforms.Compose([transforms.Resize((patch_size, patch_size)),
 										transforms.ToTensor(),
 										])
@@ -188,14 +225,20 @@ def train(model, epoch):
 	dataset_source = PoisonGenerationDataset(data_root + "/train", source_filelist, trans_image)
 
 	# SOURCE AND TARGET DATALOADERS
+	if model_name == 'mobilenet':
+		batch_size = 50
+	elif model_name == 'densenet':
+		batch_size = 50
+	else:
+		batch_size = 100
 	train_loader_target = torch.utils.data.DataLoader(dataset_target,
-													batch_size=100,
+													batch_size=batch_size,
 													shuffle=True,
 													num_workers=8,
 													pin_memory=True)
 
 	train_loader_source = torch.utils.data.DataLoader(dataset_source,
-													  batch_size=100,
+													  batch_size=batch_size,
 													  shuffle=True,
 													  num_workers=8,
 													  pin_memory=True)
@@ -246,7 +289,7 @@ def train(model, epoch):
 			num_poisoned +=1
 
 		for j in range(num_iter):
-			lr1 = adjust_learning_rate(lr, j)
+			lr1 = adjust_learning_rate(lr, j, data_name)
 
 			output2, feat2 = model(input2+pert)
 
@@ -277,6 +320,7 @@ def train(model, epoch):
 							 .format(epoch, i, j, lr1, losses.val, losses.avg))
 
 			if loss1.max().item() < 10 or j == (num_iter-1):
+				logging.info("Max_Loss: {}".format(loss1.max().item()))
 				for k in range(input2.size(0)):
 					img_ctr = img_ctr+1
 					input2_pert = (pert[k].clone().cpu())
@@ -314,10 +358,14 @@ class AverageMeter(object):
 		self.count += n
 		self.avg = self.sum / self.count
 
-def adjust_learning_rate(lr, iter):
+def adjust_learning_rate(lr, iter, data_name):
 	"""Sets the learning rate to the initial LR decayed by 0.5 every 1000 iterations"""
-	lr = lr * (0.5 ** (iter // 1000))
-	return lr
+	if data_name.upper() == 'CIFAR':
+		lr = lr * (0.95 ** (iter // 2000))
+		return lr
+	else:
+		lr = lr * (0.5 ** (iter // 1000))
+		return lr
 
 if __name__ == '__main__':
 	main()
