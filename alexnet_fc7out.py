@@ -82,7 +82,7 @@ class AlexNet(nn.Module):
         return x, feat
 
 def alexnet(pretrained=False, progress=True, **kwargs):
-    r"""AlexNet model architecture from the
+    """AlexNet model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1404.5997>`_ paper.
 
     Args:
