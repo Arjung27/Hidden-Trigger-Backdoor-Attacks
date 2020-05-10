@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Lines that begin with #SBATCH specify commands to be used by SLURM for scheduling
+#SBATCH --job-name=mobdes19                            # sets the job name if not set from environment
+#SBATCH --output cmllogs/%x_%j.log                   # redirect STDOUT to; %j is the jobid, _%j is array task id
+#SBATCH --error cmllogs/%x_%j.log                    # redirect STDERR to; %j is the jobid,_%j is array task id
+#SBATCH --account=tomg                           # set QOS, this will determine what resources can be requested
+#SBATCH --qos=default                                 # set QOS, this will determine what resources can be requested
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=4
+#SBATCH --partition=dpart
+#SBATCH --mem 16gb                                      # memory required by job; MB will be assumed
+#SBATCH --mail-user arjung15@umd.edu
+#SBATCH --mail-type=END,TIME_LIMIT,FAIL,ARRAY_TASKS
+#SBATCH --time=48:00:00                                 # how long will the job will take to complete; format=hh:mm:ss
+
+python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_10/experiment_0019.cfg &&
+python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_10/experiment_0019.cfg

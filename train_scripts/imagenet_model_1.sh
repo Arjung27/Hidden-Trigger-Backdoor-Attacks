@@ -1,15 +1,60 @@
-CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0015.cfg &&
-CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0015.cfg &&
+#python create_imagenet_filelist.py cfg_ImageNet/dataset.cfg &&
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0011.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0011.cfg
 
-CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0016.cfg &&
-CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0016.cfg &&
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0012.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0012.cfg &&
 
-CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0017.cfg &&
-CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0017.cfg &&
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0013.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0013.cfg &&
 
-CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0018.cfg &&
-CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0018.cfg &&
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0014.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0014.cfg &&
 
-CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0019.cfg &&
-CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/singlesource_singletarget_binary_finetune/experiment_0019.cfg
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0015.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0015.cfg &&
 
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0016.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0016.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0017.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0017.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0018.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0018.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0019.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0019.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0020.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_5/experiment_0020.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0011.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0011.cfg
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0012.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0012.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0013.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0013.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0014.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0014.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0015.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0015.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0016.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0016.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0017.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0017.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0018.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0018.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0019.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0019.cfg &&
+
+CUDA_VISIBLE_DEVICES=0 python generate_poison.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0020.cfg &&
+CUDA_VISIBLE_DEVICES=0 python finetune_and_test.py cfg_ImageNet/random_crop/singlesource_singletarget_binary_finetune_6/experiment_0020.cfg
